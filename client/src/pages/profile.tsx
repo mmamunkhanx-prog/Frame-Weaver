@@ -266,10 +266,6 @@ export default function Profile() {
               <span className="text-sm text-muted-foreground font-tech uppercase break-words">Mint Price</span>
               <span className="text-lg font-bold text-green-400">FREE</span>
            </div>
-           <div className="flex justify-between items-center pb-2 border-b border-white/5">
-              <span className="text-sm text-muted-foreground font-tech uppercase break-words">Gas Fee</span>
-              <span className="text-sm font-bold text-white">~0.0001 ETH</span>
-           </div>
            <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground font-tech uppercase break-words">Network</span>
               <span className="text-lg font-bold text-primary">Base</span>
