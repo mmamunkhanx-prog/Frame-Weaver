@@ -18,7 +18,7 @@ export async function registerRoutes(
       "accountAssociation": {
         "header": "eyJmaWQiOjI5Mjk3NywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEE1ZjY1YTk5YzA5NzZBRjU3MTcyQzkyNjZENDA4ODg5N0MyYjQzNDEifQ",
         "payload": "eyJkb21haW4iOiJmcmFtZS13ZWF2ZXItLW1hbXVua2hhbm4ucmVwbGl0LmFwcCJ9",
-        "signature": "MHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw"
+        "signature": "Bfu6bWPTqNLzXie2nAxdPuwSN+5CadnByjBJhd09l6p6XEV7EvxMHJU+5sdfG9obPoXz2U5az009QaXTXFVdbBs="
       },
       "frame": {
         "version": "1",
