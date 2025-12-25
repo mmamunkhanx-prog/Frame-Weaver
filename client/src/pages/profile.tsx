@@ -132,64 +132,50 @@ export default function Profile() {
     }
   }, [claimStatus]);
 
-  const handleConnectWallet = async () => {
-    try {
-      const result = await sdk.actions.signIn({
-        nonce: Date.now().toString(),
-        acceptAuthAddress: true,
-      });
+  useEffect(() => {
+    async function autoConnectWallet() {
+      if (!userData?.fid || walletAddress) return;
       
-      if (result?.signature) {
-        const signatureData = result.signature as { address?: string };
-        const custodyAddress = signatureData.address || 
-          (userData?.fid ? `0x${userData.fid.toString(16).padStart(40, '0')}` : null);
+      try {
+        const result = await sdk.actions.signIn({
+          nonce: Date.now().toString(),
+          acceptAuthAddress: true,
+        });
         
-        if (custodyAddress) {
-          setWalletAddress(custodyAddress);
-          toast({
-            title: "Wallet Connected",
-            description: `Connected: ${custodyAddress.slice(0, 6)}...${custodyAddress.slice(-4)}`,
-          });
-          return;
-        }
-      }
-      
-      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userData?.fid}`, {
-        headers: {
-          'accept': 'application/json',
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        const verifications = data.users?.[0]?.verifications;
-        if (verifications && verifications.length > 0) {
-          const ethAddress = verifications.find((v: string) => v.startsWith('0x'));
-          if (ethAddress) {
-            setWalletAddress(ethAddress);
-            toast({
-              title: "Wallet Found",
-              description: `Using verified wallet: ${ethAddress.slice(0, 6)}...${ethAddress.slice(-4)}`,
-            });
+        if (result?.signature) {
+          const signatureData = result.signature as { address?: string };
+          const custodyAddress = signatureData.address;
+          
+          if (custodyAddress) {
+            setWalletAddress(custodyAddress);
             return;
           }
         }
+        
+        const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userData.fid}`, {
+          headers: {
+            'accept': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const verifications = data.users?.[0]?.verifications;
+          if (verifications && verifications.length > 0) {
+            const ethAddress = verifications.find((v: string) => v.startsWith('0x'));
+            if (ethAddress) {
+              setWalletAddress(ethAddress);
+              return;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Auto wallet connection error:", error);
       }
-      
-      toast({
-        title: "No Wallet Found",
-        description: "Please verify a wallet address on your Farcaster profile.",
-        variant: "destructive",
-      });
-    } catch (error) {
-      console.error("Wallet connection error:", error);
-      toast({
-        title: "Connection Failed",
-        description: "Could not connect wallet. Please try again.",
-        variant: "destructive",
-      });
     }
-  };
+    
+    autoConnectWallet();
+  }, [userData?.fid]);
 
   const handleMint = () => {
     if (!walletAddress) {
@@ -273,15 +259,7 @@ export default function Profile() {
         </div>
       </motion.div>
 
-      {!walletAddress ? (
-        <Button 
-          onClick={handleConnectWallet}
-          className="w-full h-14 text-lg font-display font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-white cursor-pointer"
-        >
-          <Wallet className="mr-2 w-5 h-5" />
-          Connect Wallet
-        </Button>
-      ) : (
+      {walletAddress && (
         <div className="bg-card/50 rounded-xl p-3 border border-white/5 text-center">
           <p className="text-xs text-muted-foreground mb-1 break-words">Connected Wallet</p>
           <p className="text-xs font-mono text-primary break-all">{walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}</p>
