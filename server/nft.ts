@@ -2,28 +2,18 @@ import { createPublicClient, createWalletClient, http, parseEther, formatEther }
 import { base } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
-const NFT_CONTRACT_ADDRESS = '0x5F6287187781Bb591dEA8d8F40Fe791E13f78FC2' as `0x${string}`;
-const NATIVE_TOKEN = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' as `0x${string}`;
+const NFT_CONTRACT_ADDRESS = '0xc48556A734DF31b1788295D859ad4e602ea02a23' as `0x${string}`;
 
-const NFT_DROP_ABI = [
+const NFT_COLLECTION_ABI = [
   {
-    name: 'claim',
+    name: 'mintTo',
     type: 'function',
-    stateMutability: 'payable',
+    stateMutability: 'nonpayable',
     inputs: [
-      { name: '_receiver', type: 'address' },
-      { name: '_quantity', type: 'uint256' },
-      { name: '_currency', type: 'address' },
-      { name: '_pricePerToken', type: 'uint256' },
-      { name: '_allowlistProof', type: 'tuple', components: [
-        { name: 'proof', type: 'bytes32[]' },
-        { name: 'quantityLimitPerWallet', type: 'uint256' },
-        { name: 'pricePerToken', type: 'uint256' },
-        { name: 'currency', type: 'address' }
-      ]},
-      { name: '_data', type: 'bytes' }
+      { name: '_to', type: 'address' },
+      { name: '_uri', type: 'string' }
     ],
-    outputs: []
+    outputs: [{ name: '', type: 'uint256' }]
   },
   {
     name: 'totalSupply',
@@ -33,7 +23,7 @@ const NFT_DROP_ABI = [
     outputs: [{ name: '', type: 'uint256' }]
   },
   {
-    name: 'nextTokenIdToClaim',
+    name: 'nextTokenIdToMint',
     type: 'function',
     stateMutability: 'view',
     inputs: [],
@@ -112,6 +102,32 @@ class NftService {
     }
   }
 
+  private generateMetadataUri(metadata: {
+    name: string;
+    description: string;
+    neynarScore: number;
+    quotientScore: number;
+    username: string;
+    fid: number;
+  }): string {
+    const metadataJson = {
+      name: metadata.name,
+      description: metadata.description,
+      image: "https://neonframe.replit.app/nft-image.png",
+      attributes: [
+        { trait_type: 'Neynar Score', value: Math.round(metadata.neynarScore * 100).toString() },
+        { trait_type: 'Quotient Score', value: Math.round(metadata.quotientScore * 100).toString() },
+        { trait_type: 'Username', value: metadata.username },
+        { trait_type: 'FID', value: metadata.fid.toString() },
+        { trait_type: 'Minted On', value: new Date().toISOString().split('T')[0] }
+      ],
+      external_url: `https://warpcast.com/${metadata.username}`,
+    };
+    
+    const base64 = Buffer.from(JSON.stringify(metadataJson)).toString('base64');
+    return `data:application/json;base64,${base64}`;
+  }
+
   async mintNft(
     toAddress: string,
     metadata: {
@@ -133,48 +149,38 @@ class NftService {
     }
 
     try {
-      console.log('Claiming NFT for:', toAddress);
+      const metadataUri = this.generateMetadataUri(metadata);
+      
+      console.log('Minting NFT to:', toAddress);
       console.log('Contract:', NFT_CONTRACT_ADDRESS);
-
-      const allowlistProof = {
-        proof: [] as `0x${string}`[],
-        quantityLimitPerWallet: BigInt(0),
-        pricePerToken: BigInt(0),
-        currency: NATIVE_TOKEN
-      };
 
       const { request } = await this.publicClient.simulateContract({
         address: NFT_CONTRACT_ADDRESS,
-        abi: NFT_DROP_ABI,
-        functionName: 'claim',
+        abi: NFT_COLLECTION_ABI,
+        functionName: 'mintTo',
         args: [
           toAddress as `0x${string}`,
-          BigInt(1),
-          NATIVE_TOKEN,
-          BigInt(0),
-          allowlistProof,
-          '0x' as `0x${string}`
+          metadataUri
         ],
         account: this.account,
-        value: BigInt(0),
       });
 
       const txHash = await this.walletClient.writeContract(request);
       
-      console.log('NFT claim transaction sent:', txHash);
+      console.log('NFT mint transaction sent:', txHash);
 
       const receipt = await this.publicClient.waitForTransactionReceipt({ 
         hash: txHash,
         timeout: 60_000,
       });
 
-      console.log('NFT claim confirmed in block:', receipt.blockNumber);
+      console.log('NFT mint confirmed in block:', receipt.blockNumber);
 
       let tokenId = '1';
       try {
         const supply = await this.publicClient.readContract({
           address: NFT_CONTRACT_ADDRESS,
-          abi: NFT_DROP_ABI,
+          abi: NFT_COLLECTION_ABI,
           functionName: 'totalSupply',
         });
         tokenId = supply.toString();
