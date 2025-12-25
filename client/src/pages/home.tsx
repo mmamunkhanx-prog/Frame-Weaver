@@ -114,9 +114,10 @@ export default function Home() {
       
       try {
         const context = await sdk.context;
+        const user = context?.user as any;
         
-        if (context?.user?.custody_address) {
-          setWalletAddress(context.user.custody_address);
+        if (user?.custody_address) {
+          setWalletAddress(user.custody_address);
           return;
         }
         

@@ -126,8 +126,7 @@ export default function Profile() {
           from: walletAddress,
           to: NFT_CONTRACT,
           data: data,
-          chainId: '0x2105',
-        }],
+        }] as any,
       });
 
       return { txHash: String(txHash), tokenId: "1" };
@@ -175,9 +174,10 @@ export default function Profile() {
       
       try {
         const context = await sdk.context;
+        const user = context?.user as any;
         
-        if (context?.user?.custody_address) {
-          setWalletAddress(context.user.custody_address);
+        if (user?.custody_address) {
+          setWalletAddress(user.custody_address);
           return;
         }
         
