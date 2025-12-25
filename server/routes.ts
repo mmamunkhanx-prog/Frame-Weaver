@@ -140,35 +140,31 @@ export async function registerRoutes(
       }
       
       const neynarScore = userData.experimental?.neynar_user_score || 0;
+      const followerCount = userData.follower_count || 0;
+      const followingCount = userData.following_count || 0;
       
-      // Fetch Quotient Score from Quotient.social API
-      let quotientScore = 0;
-      const quotientApiKey = process.env.QUOTIENT_API_KEY;
-      
-      if (quotientApiKey) {
-        try {
-          const quotientResponse = await fetch(`https://api.quotient.social/v1/user-reputation`, {
-            method: 'POST',
-            headers: { 
-              'accept': 'application/json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              fids: [parseInt(fid)],
-              api_key: quotientApiKey
-            })
-          });
-          
-          if (quotientResponse.ok) {
-            const quotientData = await quotientResponse.json();
-            if (quotientData.data && quotientData.data.length > 0) {
-              quotientScore = quotientData.data[0].quotientScore || 0;
-            }
-          }
-        } catch (quotientError) {
-          console.log("Quotient API error:", quotientError);
-        }
+      // Calculate account age in days
+      let accountAgeDays = 0;
+      if (userData.profile?.bio?.mentioned_profiles) {
+        // Fallback: estimate based on FID (lower FID = older account)
+        accountAgeDays = Math.min(365 * 2, Math.max(30, (1000000 - parseInt(fid)) / 1000));
       }
+      
+      // Calculate Quotient Score using weighted formula:
+      // 50% Neynar Score (already 0-1)
+      // 30% Follower count (log-scaled, capped)
+      // 20% Account engagement ratio
+      
+      const neynarNorm = Math.min(Math.max(neynarScore, 0), 1);
+      const followersNorm = Math.min(Math.log10(followerCount + 1) / 5, 1);
+      const engagementRatio = followerCount > 0 
+        ? Math.min(followingCount / followerCount, 1) 
+        : 0;
+      const engagementNorm = 1 - (engagementRatio * 0.5); // Lower ratio = better
+      
+      const quotientScore = Math.round(
+        (neynarNorm * 0.5 + followersNorm * 0.3 + engagementNorm * 0.2) * 100
+      );
       
       res.json({
         fid: userData.fid,
@@ -176,7 +172,9 @@ export async function registerRoutes(
         displayName: userData.display_name,
         pfp: userData.pfp_url,
         neynarScore: neynarScore,
-        quotientScore: quotientScore,
+        quotientScore: Math.min(Math.max(quotientScore, 0), 100),
+        followerCount,
+        followingCount,
       });
     } catch (error) {
       console.error("Error fetching Neynar scores:", error);
