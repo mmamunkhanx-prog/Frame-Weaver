@@ -22,12 +22,12 @@ export async function registerRoutes(
       },
       "frame": {
         "version": "1",
-        "name": "NeonFrame",
-        "iconUrl": `${baseUrl}/favicon.png`,
+        "name": "Check Neynar Quotient Score",
+        "iconUrl": `${baseUrl}/logo.png`,
         "homeUrl": baseUrl,
-        "imageUrl": `${baseUrl}/opengraph.jpg`,
+        "imageUrl": `${baseUrl}/logo.png`,
         "buttonTitle": "Check My Score",
-        "splashImageUrl": `${baseUrl}/opengraph.jpg`,
+        "splashImageUrl": `${baseUrl}/logo.png`,
         "splashBackgroundColor": "#12141d",
         "webhookUrl": `${baseUrl}/api/webhook`
       }
