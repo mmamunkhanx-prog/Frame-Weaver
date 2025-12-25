@@ -20,16 +20,50 @@ export async function registerRoutes(
       },
       "frame": {
         "version": "1",
-        "name": "Example Frame",
+        "name": "NeonFrame",
         "iconUrl": "https://taskpay.group/icon.png",
         "homeUrl": "https://taskpay.group",
         "imageUrl": "https://taskpay.group/image.png",
-        "buttonTitle": "Check this out",
+        "buttonTitle": "Check My Score",
         "splashImageUrl": "https://taskpay.group/splash.png",
-        "splashBackgroundColor": "#eeccff",
+        "splashBackgroundColor": "#12141d",
         "webhookUrl": "https://taskpay.group/api/webhook"
       }
     });
+  });
+
+  // Frame webhook endpoint
+  app.post("/api/webhook", (req, res) => {
+    console.log("Frame webhook received:", req.body);
+    res.json({ success: true });
+  });
+
+  // Frame POST handler
+  app.post("/api/frame", async (req, res) => {
+    try {
+      const { untrustedData } = req.body;
+      const fid = untrustedData?.fid;
+      
+      console.log("Frame action received:", { fid, buttonIndex: untrustedData?.buttonIndex });
+      
+      // Return a frame response
+      res.setHeader('Content-Type', 'text/html');
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta property="fc:frame" content="vNext" />
+          <meta property="fc:frame:image" content="https://taskpay.group/image.png" />
+          <meta property="fc:frame:button:1" content="Open App" />
+          <meta property="fc:frame:button:1:action" content="link" />
+          <meta property="fc:frame:button:1:target" content="https://taskpay.group" />
+        </head>
+        </html>
+      `);
+    } catch (error) {
+      console.error("Frame error:", error);
+      res.status(500).json({ error: "Frame error" });
+    }
   });
 
   // Get or create user by FID
