@@ -3,7 +3,7 @@ import { base } from 'viem/chains';
 import { privateKeyToAccount } from 'viem/accounts';
 
 const ZORA_MINT_FEE = parseEther('0.000777');
-const NFT_PRICE = parseEther('0.00004');
+const NFT_PRICE = parseEther('0'); // Free mint - only gas fee required
 
 class NftService {
   private walletClient: any = null;
