@@ -48,7 +48,8 @@ export default function Home() {
   const handleShare = () => {
     if (!userData) return;
     
-    const text = `My Farcaster Scores are in!%0A%0ANeynar: ${Math.round(userData.neynarScore * 100)}%0AQuotient: ${Math.round(userData.quotientScore * 100)}%0A%0ACheck yours here!`;
+    const appUrl = "https://frame-weaver--mamunkhann.replit.app";
+    const text = `My Farcaster Scores are in!%0A%0ANeynar: ${Math.round(userData.neynarScore * 100)}%0AQuotient: ${Math.round(userData.quotientScore * 100)}%0A%0ACheck yours here! ${appUrl}`;
     const url = `https://warpcast.com/~/compose?text=${text}`;
     
     window.open(url, '_blank');

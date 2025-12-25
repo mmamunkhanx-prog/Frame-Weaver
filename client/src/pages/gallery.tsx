@@ -54,7 +54,8 @@ export default function Gallery() {
   });
 
   const handleShare = (tokenId: string) => {
-    const text = `Check out my Minted Profile NFT on NeonFrame! Token #${tokenId}`;
+    const appUrl = "https://frame-weaver--mamunkhann.replit.app";
+    const text = `Check out my Minted Profile NFT on NeonFrame! Token #${tokenId}\n\nMint yours here! ${appUrl}`;
     const url = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}`;
     
     window.open(url, '_blank');
