@@ -69,6 +69,42 @@ export async function registerRoutes(
     }
   });
 
+  // Get user wallet from Neynar
+  app.get("/api/user-wallet/:fid", async (req, res) => {
+    try {
+      const fid = req.params.fid;
+      const apiKey = process.env.NEYNAR_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: "Neynar API key not configured" });
+      }
+      
+      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+        headers: {
+          'accept': 'application/json',
+          'api_key': apiKey
+        }
+      });
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      const data = await response.json();
+      const user = data.users?.[0];
+      
+      const verifications = user?.verifications || [];
+      const custodyAddress = user?.custody_address;
+      
+      const walletAddress = verifications.find((v: string) => v.startsWith('0x')) || custodyAddress;
+      
+      res.json({ walletAddress: walletAddress || null });
+    } catch (error) {
+      console.error("Error getting user wallet:", error);
+      res.status(500).json({ error: "Failed to get wallet" });
+    }
+  });
+
   // Get or create user by FID
   app.post("/api/users", async (req, res) => {
     try {

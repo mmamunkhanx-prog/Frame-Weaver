@@ -137,36 +137,25 @@ export default function Profile() {
       if (!userData?.fid || walletAddress) return;
       
       try {
-        const result = await sdk.actions.signIn({
-          nonce: Date.now().toString(),
-          acceptAuthAddress: true,
-        });
+        const context = await sdk.context;
         
-        if (result?.signature) {
-          const signatureData = result.signature as { address?: string };
-          const custodyAddress = signatureData.address;
-          
-          if (custodyAddress) {
-            setWalletAddress(custodyAddress);
-            return;
-          }
+        if (context?.user?.custody_address) {
+          setWalletAddress(context.user.custody_address);
+          return;
         }
         
-        const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userData.fid}`, {
-          headers: {
-            'accept': 'application/json',
-          }
-        });
-        
+        const connectedAddress = (context as any)?.connectedAddress;
+        if (connectedAddress) {
+          setWalletAddress(connectedAddress);
+          return;
+        }
+
+        const response = await fetch(`/api/user-wallet/${userData.fid}`);
         if (response.ok) {
           const data = await response.json();
-          const verifications = data.users?.[0]?.verifications;
-          if (verifications && verifications.length > 0) {
-            const ethAddress = verifications.find((v: string) => v.startsWith('0x'));
-            if (ethAddress) {
-              setWalletAddress(ethAddress);
-              return;
-            }
+          if (data.walletAddress) {
+            setWalletAddress(data.walletAddress);
+            return;
           }
         }
       } catch (error) {
