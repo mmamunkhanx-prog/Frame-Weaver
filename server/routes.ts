@@ -156,7 +156,8 @@ export async function registerRoutes(
       // 20% Account engagement ratio
       
       const neynarNorm = Math.min(Math.max(neynarScore, 0), 1);
-      const followersNorm = Math.min(Math.log10(followerCount + 1) / 5, 1);
+      // Use 1k-1M follower log scale for better alignment with Quotient.social
+      const followersNorm = Math.max(0, Math.min((Math.log10(followerCount + 1) - 3) / 3, 1));
       const engagementRatio = followerCount > 0 
         ? Math.min(followingCount / followerCount, 1) 
         : 0;
