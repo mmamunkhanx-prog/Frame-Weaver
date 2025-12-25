@@ -26,36 +26,61 @@ const ERC20_ABI = [
   }
 ] as const;
 
-export class DegenService {
-  private walletClient;
-  private publicClient;
-  private account;
+class DegenService {
+  private walletClient: any = null;
+  private publicClient: any = null;
+  private account: any = null;
+  private initialized = false;
+  private initError: string | null = null;
 
-  constructor() {
-    if (!process.env.ADMIN_WALLET_PRIVATE_KEY) {
-      throw new Error('ADMIN_WALLET_PRIVATE_KEY not configured');
+  private initialize() {
+    if (this.initialized) return;
+    this.initialized = true;
+
+    try {
+      if (!process.env.ADMIN_WALLET_PRIVATE_KEY) {
+        this.initError = 'ADMIN_WALLET_PRIVATE_KEY not configured';
+        console.warn('DegenService: ' + this.initError);
+        return;
+      }
+
+      // Remove 0x prefix if present and add it back
+      const privateKey = process.env.ADMIN_WALLET_PRIVATE_KEY.startsWith('0x') 
+        ? process.env.ADMIN_WALLET_PRIVATE_KEY as `0x${string}`
+        : `0x${process.env.ADMIN_WALLET_PRIVATE_KEY}` as `0x${string}`;
+
+      this.account = privateKeyToAccount(privateKey);
+
+      this.walletClient = createWalletClient({
+        account: this.account,
+        chain: base,
+        transport: http()
+      });
+
+      this.publicClient = createPublicClient({
+        chain: base,
+        transport: http()
+      });
+
+      console.log('DegenService initialized successfully');
+    } catch (error) {
+      this.initError = 'Failed to initialize wallet: ' + (error as Error).message;
+      console.error('DegenService initialization error:', error);
     }
+  }
 
-    // Remove 0x prefix if present and add it back
-    const privateKey = process.env.ADMIN_WALLET_PRIVATE_KEY.startsWith('0x') 
-      ? process.env.ADMIN_WALLET_PRIVATE_KEY as `0x${string}`
-      : `0x${process.env.ADMIN_WALLET_PRIVATE_KEY}` as `0x${string}`;
-
-    this.account = privateKeyToAccount(privateKey);
-
-    this.walletClient = createWalletClient({
-      account: this.account,
-      chain: base,
-      transport: http()
-    });
-
-    this.publicClient = createPublicClient({
-      chain: base,
-      transport: http()
-    });
+  isConfigured(): boolean {
+    this.initialize();
+    return this.account !== null && this.initError === null;
   }
 
   async sendDegen(toAddress: string, amount: string = '1'): Promise<{ hash: string; success: boolean }> {
+    this.initialize();
+    
+    if (!this.isConfigured()) {
+      throw new Error(this.initError || 'DegenService not configured');
+    }
+
     try {
       // Convert amount to wei (DEGEN has 18 decimals)
       const amountInWei = parseEther(amount);
@@ -85,6 +110,12 @@ export class DegenService {
   }
 
   async getBalance(): Promise<string> {
+    this.initialize();
+    
+    if (!this.isConfigured()) {
+      return '0';
+    }
+
     try {
       const balance = await this.publicClient.readContract({
         address: DEGEN_TOKEN_ADDRESS,
@@ -100,8 +131,9 @@ export class DegenService {
     }
   }
 
-  getAdminAddress(): string {
-    return this.account.address;
+  getAdminAddress(): string | null {
+    this.initialize();
+    return this.account?.address || null;
   }
 }
 

@@ -179,6 +179,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "User ID and wallet address required" });
       }
       
+      // Check if DEGEN service is configured
+      if (!degenService.isConfigured()) {
+        return res.status(503).json({ error: "Reward service temporarily unavailable" });
+      }
+      
       const canClaim = await storage.canClaimDegen(userId);
       
       if (!canClaim) {
