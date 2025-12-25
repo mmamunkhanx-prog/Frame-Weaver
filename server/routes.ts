@@ -121,21 +121,19 @@ export async function registerRoutes(
       }
       
       // Fetch user data from Neynar API
-      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
+      const neynarResponse = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${fid}`, {
         headers: {
           'accept': 'application/json',
           'api_key': apiKey
         }
       });
       
-      if (!response.ok) {
-        throw new Error(`Neynar API error: ${response.statusText}`);
+      if (!neynarResponse.ok) {
+        throw new Error(`Neynar API error: ${neynarResponse.statusText}`);
       }
       
-      const data = await response.json();
-      
-      // Extract scores from the response
-      const userData = data.users?.[0];
+      const neynarData = await neynarResponse.json();
+      const userData = neynarData.users?.[0];
       
       if (!userData) {
         return res.status(404).json({ error: "User not found on Neynar" });
@@ -143,13 +141,36 @@ export async function registerRoutes(
       
       const neynarScore = userData.experimental?.neynar_user_score || 0;
       
+      // Fetch engagement score from OpenRank API (free, no API key needed)
+      let quotientScore = 0;
+      try {
+        const openrankResponse = await fetch(`https://graph.cast.k3l.io/scores/global/engagement/fids`, {
+          method: 'POST',
+          headers: { 
+            'accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify([fid])
+        });
+        
+        if (openrankResponse.ok) {
+          const openrankData = await openrankResponse.json();
+          if (openrankData.result && openrankData.result.length > 0) {
+            // Use percentile as score (0-100 scale)
+            quotientScore = openrankData.result[0].percentile || 0;
+          }
+        }
+      } catch (openrankError) {
+        console.log("OpenRank API error, using fallback:", openrankError);
+      }
+      
       res.json({
         fid: userData.fid,
         username: userData.username,
         displayName: userData.display_name,
         pfp: userData.pfp_url,
         neynarScore: neynarScore,
-        quotientScore: neynarScore,
+        quotientScore: quotientScore,
       });
     } catch (error) {
       console.error("Error fetching Neynar scores:", error);
