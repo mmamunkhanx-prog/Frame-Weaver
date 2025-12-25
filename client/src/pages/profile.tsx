@@ -317,30 +317,6 @@ export default function Profile() {
           <Wallet className="mr-2 w-6 h-6" />
           {mintMutation.isPending ? "MINTING..." : "MINT NFT"}
         </Button>
-
-        <div className="bg-secondary/10 rounded-xl p-4 border border-secondary/30">
-          <div className="flex items-center gap-2 mb-3">
-            <Gift className="w-5 h-5 text-secondary" />
-            <h3 className="font-display font-bold text-white break-words">Daily Reward</h3>
-          </div>
-          
-          <p className="text-sm text-muted-foreground mb-4 break-words">Claim 1 $DEGEN token every 24 hours</p>
-          
-          {claimStatus?.canClaim ? (
-            <Button
-              onClick={() => claimMutation.mutate()}
-              disabled={!walletAddress || claimMutation.isPending}
-              className="w-full bg-secondary hover:bg-secondary/90 text-white font-bold cursor-pointer disabled:opacity-50"
-            >
-              {claimMutation.isPending ? "Claiming..." : "Claim 1 $DEGEN"}
-            </Button>
-          ) : (
-            <div className="flex items-center justify-center gap-2 p-3 bg-white/5 rounded-lg">
-              <Clock className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground break-words">Next claim in: {timeRemaining}</span>
-            </div>
-          )}
-        </div>
         
         <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
            <AlertCircle className="w-3 h-3 flex-shrink-0" />
