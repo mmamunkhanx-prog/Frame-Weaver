@@ -115,8 +115,7 @@ export default function Profile() {
            <div className="flex flex-col gap-1">
               <span className="text-sm text-muted-foreground font-tech uppercase">Payment To</span>
               <div className="bg-black/30 p-2 rounded text-[10px] font-mono text-muted-foreground break-all border border-white/5">
-                {/* USER: REPLACE THE ADDRESS BELOW WITH YOUR WALLET ADDRESS */}
-                0xYOUR_WALLET_ADDRESS_HERE
+                0xA5f65a99c0976AF57172C9266D4088897C2b4341
               </div>
            </div>
         </div>
