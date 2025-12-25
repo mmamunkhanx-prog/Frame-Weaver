@@ -7,20 +7,42 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { getNeynarScores, getOrCreateUser } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import sdk from "@farcaster/frame-sdk";
 
 export default function Home() {
   const { toast } = useToast();
-  const [fid] = useState(3); // In production, this would come from Farcaster Frame context
+  const [fid, setFid] = useState<number | null>(null);
+  const [isLoadingContext, setIsLoadingContext] = useState(true);
+  
+  useEffect(() => {
+    async function getContext() {
+      try {
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+          setFid(context.user.fid);
+        } else {
+          setFid(3);
+        }
+      } catch (error) {
+        console.log("Not in Farcaster context, using default FID");
+        setFid(3);
+      } finally {
+        setIsLoadingContext(false);
+      }
+    }
+    getContext();
+  }, []);
   
   const { data: userData, isLoading, refetch } = useQuery({
     queryKey: ['neynar-scores', fid],
     queryFn: async () => {
+      if (!fid) throw new Error("No FID");
       const scores = await getNeynarScores(fid);
-      // Also ensure user exists in our database
       await getOrCreateUser(scores.fid, scores.username, scores.displayName, scores.pfp);
       return scores;
     },
-    staleTime: 60000, // Cache for 1 minute
+    enabled: !!fid,
+    staleTime: 60000,
   });
 
   const handleShare = () => {
@@ -52,7 +74,7 @@ export default function Home() {
     });
   };
 
-  if (isLoading || !userData) {
+  if (isLoadingContext || isLoading || !userData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -65,7 +87,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-6 pb-20 pt-8 px-4 max-w-md mx-auto min-h-screen">
-      {/* Header Profile */}
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -102,7 +123,6 @@ export default function Home() {
         </Button>
       </motion.div>
 
-      {/* Main Score Area */}
       <div className="grid grid-cols-1 gap-4">
         <ScoreCard 
           title="Neynar Score" 
@@ -116,7 +136,6 @@ export default function Home() {
         />
       </div>
 
-      {/* Insight Section */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -132,7 +151,6 @@ export default function Home() {
         </p>
       </motion.div>
 
-      {/* Share Button */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

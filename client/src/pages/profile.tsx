@@ -6,17 +6,39 @@ import generatedImage from '@assets/generated_images/dark_futuristic_neon_grid_b
 import { useState, useEffect } from "react";
 import { getNeynarScores, canClaimDegen, claimDegen, getOrCreateUser } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import sdk from "@farcaster/frame-sdk";
 
 export default function Profile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [fid] = useState(3); // In production, this comes from Farcaster Frame context
+  const [fid, setFid] = useState<number | null>(null);
+  const [isLoadingContext, setIsLoadingContext] = useState(true);
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [timeRemaining, setTimeRemaining] = useState<string>("");
 
+  useEffect(() => {
+    async function getContext() {
+      try {
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+          setFid(context.user.fid);
+        } else {
+          setFid(3);
+        }
+      } catch (error) {
+        console.log("Not in Farcaster context, using default FID");
+        setFid(3);
+      } finally {
+        setIsLoadingContext(false);
+      }
+    }
+    getContext();
+  }, []);
+
   const { data: userData } = useQuery({
     queryKey: ['neynar-scores', fid],
-    queryFn: () => getNeynarScores(fid),
+    queryFn: () => getNeynarScores(fid!),
+    enabled: !!fid,
   });
 
   const { data: dbUser } = useQuery({
@@ -32,7 +54,7 @@ export default function Profile() {
     queryKey: ['claim-status', dbUser?.id],
     queryFn: () => canClaimDegen(dbUser!.id),
     enabled: !!dbUser,
-    refetchInterval: 10000, // Check every 10 seconds
+    refetchInterval: 10000,
   });
 
   const claimMutation = useMutation({
@@ -81,7 +103,6 @@ export default function Profile() {
   }, [claimStatus]);
 
   const handleConnectWallet = async () => {
-    // In production, this would use Coinbase Wallet SDK or similar
     const mockWallet = "0x" + Math.random().toString(16).slice(2, 42);
     setWalletAddress(mockWallet);
     
@@ -116,7 +137,7 @@ export default function Profile() {
     }, 2000);
   };
 
-  if (!userData) {
+  if (isLoadingContext || !userData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground">Loading...</p>
@@ -133,7 +154,6 @@ export default function Profile() {
         </p>
       </div>
 
-      {/* NFT Preview Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -186,7 +206,6 @@ export default function Profile() {
         </div>
       </motion.div>
 
-      {/* Wallet Connection */}
       {!walletAddress ? (
         <Button 
           onClick={handleConnectWallet}
@@ -202,7 +221,6 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Mint Actions */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -229,7 +247,6 @@ export default function Profile() {
           MINT NFT
         </Button>
 
-        {/* Daily DEGEN Reward */}
         <div className="bg-secondary/10 rounded-xl p-4 border border-secondary/30">
           <div className="flex items-center gap-2 mb-3">
             <Gift className="w-5 h-5 text-secondary" />
