@@ -141,27 +141,33 @@ export async function registerRoutes(
       
       const neynarScore = userData.experimental?.neynar_user_score || 0;
       
-      // Fetch engagement score from OpenRank API (free, no API key needed)
+      // Fetch Quotient Score from Quotient.social API
       let quotientScore = 0;
-      try {
-        const openrankResponse = await fetch(`https://graph.cast.k3l.io/scores/global/engagement/fids`, {
-          method: 'POST',
-          headers: { 
-            'accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify([fid])
-        });
-        
-        if (openrankResponse.ok) {
-          const openrankData = await openrankResponse.json();
-          if (openrankData.result && openrankData.result.length > 0) {
-            // Use percentile as score (0-100 scale)
-            quotientScore = openrankData.result[0].percentile || 0;
+      const quotientApiKey = process.env.QUOTIENT_API_KEY;
+      
+      if (quotientApiKey) {
+        try {
+          const quotientResponse = await fetch(`https://api.quotient.social/v1/user-reputation`, {
+            method: 'POST',
+            headers: { 
+              'accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              fids: [parseInt(fid)],
+              api_key: quotientApiKey
+            })
+          });
+          
+          if (quotientResponse.ok) {
+            const quotientData = await quotientResponse.json();
+            if (quotientData.data && quotientData.data.length > 0) {
+              quotientScore = quotientData.data[0].quotientScore || 0;
+            }
           }
+        } catch (quotientError) {
+          console.log("Quotient API error:", quotientError);
         }
-      } catch (openrankError) {
-        console.log("OpenRank API error, using fallback:", openrankError);
       }
       
       res.json({
