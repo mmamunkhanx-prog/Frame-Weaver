@@ -1,4 +1,4 @@
-import { User, Trophy, Wallet, Share2, Zap } from "lucide-react";
+import { User, Image as ImageIcon, Wallet } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -7,7 +7,7 @@ export function Navigation() {
 
   const navItems = [
     { href: "/", icon: User, label: "Home" },
-    { href: "/leaderboard", icon: Trophy, label: "Top 10" },
+    { href: "/gallery", icon: ImageIcon, label: "Gallery" },
     { href: "/profile", icon: Wallet, label: "Mint" },
   ];
 

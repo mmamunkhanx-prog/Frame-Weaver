@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { Navigation } from "@/components/Navigation";
 import Home from "@/pages/home";
-import Leaderboard from "@/pages/leaderboard";
+import Gallery from "@/pages/gallery";
 import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 
@@ -12,7 +12,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/gallery" component={Gallery} />
       <Route path="/profile" component={Profile} />
       <Route component={NotFound} />
     </Switch>
