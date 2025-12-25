@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertNftSchema, insertDegenClaimSchema } from "@shared/schema";
+import { degenService } from "./degen";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -162,21 +163,25 @@ export async function registerRoutes(
         return res.status(429).json({ error: "Already claimed within 24 hours" });
       }
       
-      // TODO: Implement actual DEGEN token transfer on Base network
-      // This would require ethers.js/viem and your admin wallet private key
-      // For now, we'll simulate the transaction
+      // Send actual DEGEN tokens from admin wallet
+      console.log(`Sending 1 DEGEN to ${walletAddress} from admin wallet`);
+      const { hash, success } = await degenService.sendDegen(walletAddress, "1");
       
-      const mockTxHash = `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`;
+      if (!success) {
+        throw new Error("Transaction failed");
+      }
       
+      // Record the claim in database
       const claim = await storage.createDegenClaim({
         userId,
-        transactionHash: mockTxHash,
+        transactionHash: hash,
         amount: "1"
       });
       
       res.json({
         success: true,
         claim,
+        transactionHash: hash,
         message: "1 DEGEN sent successfully"
       });
     } catch (error) {
