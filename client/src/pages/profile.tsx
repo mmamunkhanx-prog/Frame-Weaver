@@ -83,17 +83,54 @@ export default function Profile() {
 
   const mintMutation = useMutation({
     mutationFn: async () => {
-      if (!dbUser || !walletAddress || !userData) {
+      if (!walletAddress || !userData) {
         throw new Error("Wallet not connected");
       }
-      return mintNft({
-        userId: dbUser.id,
-        walletAddress,
-        neynarScore: userData.neynarScore,
-        quotientScore: userData.quotientScore,
-        username: userData.username,
-        fid: userData.fid,
+      
+      const provider = await sdk.wallet.ethProvider;
+      if (!provider) {
+        throw new Error("Farcaster wallet not available");
+      }
+
+      const NFT_CONTRACT = "0xc48556A734DF31b1788295D859ad4e602ea02a23";
+      
+      const metadataJson = {
+        name: `Neynar Score Pass - ${userData.username}`,
+        description: `Farcaster score NFT for @${userData.username}`,
+        image: "https://frame-weaver--mamunkhann.replit.app/logo.png",
+        attributes: [
+          { trait_type: 'Neynar Score', value: Math.round(userData.neynarScore * 100).toString() },
+          { trait_type: 'Quotient Score', value: Math.round(userData.quotientScore * 100).toString() },
+          { trait_type: 'Username', value: userData.username },
+          { trait_type: 'FID', value: userData.fid.toString() },
+        ],
+      };
+      const metadataUri = `data:application/json;base64,${btoa(JSON.stringify(metadataJson))}`;
+      
+      const stringToHex = (str: string) => {
+        return Array.from(str).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+      };
+      
+      const mintToSelector = "0075a317";
+      const addressPadded = walletAddress.slice(2).toLowerCase().padStart(64, '0');
+      const uriOffset = "0000000000000000000000000000000000000000000000000000000000000040";
+      const uriHex = stringToHex(metadataUri);
+      const uriLength = (metadataUri.length).toString(16).padStart(64, '0');
+      const uriPadded = uriHex.padEnd(Math.ceil(uriHex.length / 64) * 64, '0');
+      
+      const data = "0x" + mintToSelector + addressPadded + uriOffset + uriLength + uriPadded;
+
+      const txHash = await provider.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: NFT_CONTRACT,
+          data: data,
+          chainId: '0x2105',
+        }],
       });
+
+      return { txHash: String(txHash), tokenId: "1" };
     },
     onSuccess: (data) => {
       toast({
