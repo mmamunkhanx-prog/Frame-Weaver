@@ -10,6 +10,28 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
+  // Farcaster domain manifest for Warpcast verification
+  app.get("/.well-known/farcaster.json", (req, res) => {
+    res.json({
+      "accountAssociation": {
+        "header": "eyJmaWQiOjI5Mjk3NywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEE1ZjY1YTk5YzA5NzZBRjU3MTcyQzkyNjZENDA4ODg5N0MyYjQzNDEifQ",
+        "payload": "eyJkb21haW4iOiJ0YXNrcGF5Lmdyb3VwIn0",
+        "signature": "NQTzU1Ijxs18Y42NSrD0+LIbYn/NU5kkw1eVuKujf6lirK4LUbEUEHPf4woEUdQUKCSjRbd6XvjeUOxpzTwz/xs="
+      },
+      "frame": {
+        "version": "1",
+        "name": "Example Frame",
+        "iconUrl": "https://taskpay.group/icon.png",
+        "homeUrl": "https://taskpay.group",
+        "imageUrl": "https://taskpay.group/image.png",
+        "buttonTitle": "Check this out",
+        "splashImageUrl": "https://taskpay.group/splash.png",
+        "splashBackgroundColor": "#eeccff",
+        "webhookUrl": "https://taskpay.group/api/webhook"
+      }
+    });
+  });
+
   // Get or create user by FID
   app.post("/api/users", async (req, res) => {
     try {
