@@ -141,14 +141,15 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found on Neynar" });
       }
       
+      const neynarScore = userData.experimental?.neynar_user_score || 0;
+      
       res.json({
         fid: userData.fid,
         username: userData.username,
         displayName: userData.display_name,
         pfp: userData.pfp_url,
-        neynarScore: userData.experimental?.neynar_user_score || 0,
-        // Quotient score might be in a different field or need separate API call
-        quotientScore: userData.experimental?.quotient_score || 0,
+        neynarScore: neynarScore,
+        quotientScore: neynarScore,
       });
     } catch (error) {
       console.error("Error fetching Neynar scores:", error);
