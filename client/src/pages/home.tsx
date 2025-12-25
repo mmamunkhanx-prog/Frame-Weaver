@@ -1,18 +1,20 @@
 import { motion } from "framer-motion";
-import { Share2, Zap, RefreshCw } from "lucide-react";
+import { Share2, Gift, Clock, RefreshCw } from "lucide-react";
 import { ScoreCard } from "@/components/ScoreCard";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
-import { getNeynarScores, getOrCreateUser } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { getNeynarScores, getOrCreateUser, canClaimDegen, claimDegen } from "@/lib/api";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import sdk from "@farcaster/frame-sdk";
 
 export default function Home() {
   const { toast } = useToast();
   const [fid, setFid] = useState<number | null>(null);
   const [isLoadingContext, setIsLoadingContext] = useState(true);
+  const [walletAddress, setWalletAddress] = useState<string>("");
+  const [timeRemaining, setTimeRemaining] = useState<string>("");
   
   useEffect(() => {
     async function getContext() {
@@ -44,6 +46,101 @@ export default function Home() {
     enabled: !!fid,
     staleTime: 60000,
   });
+
+  const { data: dbUser } = useQuery({
+    queryKey: ['db-user-home', fid],
+    queryFn: async () => {
+      if (!userData) return null;
+      return getOrCreateUser(userData.fid, userData.username, userData.displayName, userData.pfp);
+    },
+    enabled: !!userData,
+  });
+
+  const { data: claimStatus, refetch: refetchClaimStatus } = useQuery({
+    queryKey: ['claim-status-home', dbUser?.id],
+    queryFn: () => canClaimDegen(dbUser!.id),
+    enabled: !!dbUser,
+    refetchInterval: 10000,
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: async () => {
+      if (!dbUser || !walletAddress) {
+        throw new Error("Wallet not connected");
+      }
+      return claimDegen(dbUser.id, walletAddress);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Reward Claimed!",
+        description: "1 $DEGEN has been sent to your wallet.",
+        duration: 5000,
+      });
+      refetchClaimStatus();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Claim Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  useEffect(() => {
+    if (!claimStatus?.canClaim && claimStatus?.remainingMs) {
+      const interval = setInterval(() => {
+        const remaining = claimStatus.remainingMs - (Date.now() - new Date(claimStatus.nextClaimTime).getTime() + claimStatus.remainingMs);
+        
+        if (remaining <= 0) {
+          setTimeRemaining("Ready to claim!");
+          refetchClaimStatus();
+          clearInterval(interval);
+        } else {
+          const hours = Math.floor(remaining / (1000 * 60 * 60));
+          const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+          setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [claimStatus]);
+
+  useEffect(() => {
+    async function autoConnectWallet() {
+      if (!userData?.fid || walletAddress) return;
+      
+      try {
+        const context = await sdk.context;
+        
+        if (context?.user?.custody_address) {
+          setWalletAddress(context.user.custody_address);
+          return;
+        }
+        
+        const connectedAddress = (context as any)?.connectedAddress;
+        if (connectedAddress) {
+          setWalletAddress(connectedAddress);
+          return;
+        }
+
+        const response = await fetch(`/api/user-wallet/${userData.fid}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.walletAddress) {
+            setWalletAddress(data.walletAddress);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Auto wallet connection error:", error);
+      }
+    }
+    
+    autoConnectWallet();
+  }, [userData?.fid]);
 
   const handleShare = () => {
     if (!userData) return;
@@ -141,15 +238,29 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="p-4 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm break-words"
+        className="p-4 rounded-xl bg-secondary/10 border border-secondary/30 break-words"
       >
-        <div className="flex items-center gap-2 mb-2 text-primary font-tech uppercase tracking-wider text-sm">
-          <Zap className="w-4 h-4 flex-shrink-0" />
-          <span>Performance Insight</span>
+        <div className="flex items-center gap-2 mb-3">
+          <Gift className="w-5 h-5 text-secondary" />
+          <h3 className="font-display font-bold text-white break-words">Daily Reward</h3>
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed break-words">
-          Your engagement score places you among Farcaster's active users. Keep building to improve your Quotient score.
-        </p>
+        
+        <p className="text-sm text-muted-foreground mb-4 break-words">Claim 1 $DEGEN token every 24 hours</p>
+        
+        {claimStatus?.canClaim ? (
+          <Button
+            onClick={() => claimMutation.mutate()}
+            disabled={!walletAddress || claimMutation.isPending}
+            className="w-full bg-secondary hover:bg-secondary/90 text-white font-bold cursor-pointer disabled:opacity-50"
+          >
+            {claimMutation.isPending ? "Claiming..." : "Claim 1 $DEGEN"}
+          </Button>
+        ) : (
+          <div className="flex items-center justify-center gap-2 p-3 bg-white/5 rounded-lg">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground break-words">Next claim in: {timeRemaining}</span>
+          </div>
+        )}
       </motion.div>
 
       <motion.div
