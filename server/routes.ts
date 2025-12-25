@@ -12,22 +12,24 @@ export async function registerRoutes(
   
   // Farcaster domain manifest for Warpcast verification
   app.get("/.well-known/farcaster.json", (req, res) => {
+    const baseUrl = "https://frame-weaver--mamunkhann.replit.app";
+    
     res.json({
       "accountAssociation": {
         "header": "eyJmaWQiOjI5Mjk3NywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEE1ZjY1YTk5YzA5NzZBRjU3MTcyQzkyNjZENDA4ODg5N0MyYjQzNDEifQ",
-        "payload": "eyJkb21haW4iOiJ0YXNrcGF5Lmdyb3VwIn0",
-        "signature": "NQTzU1Ijxs18Y42NSrD0+LIbYn/NU5kkw1eVuKujf6lirK4LUbEUEHPf4woEUdQUKCSjRbd6XvjeUOxpzTwz/xs="
+        "payload": "eyJkb21haW4iOiJmcmFtZS13ZWF2ZXItLW1hbXVua2hhbm4ucmVwbGl0LmFwcCJ9",
+        "signature": "MHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw"
       },
       "frame": {
         "version": "1",
         "name": "NeonFrame",
-        "iconUrl": "https://taskpay.group/icon.png",
-        "homeUrl": "https://taskpay.group",
-        "imageUrl": "https://taskpay.group/image.png",
+        "iconUrl": `${baseUrl}/favicon.png`,
+        "homeUrl": baseUrl,
+        "imageUrl": `${baseUrl}/opengraph.jpg`,
         "buttonTitle": "Check My Score",
-        "splashImageUrl": "https://taskpay.group/splash.png",
+        "splashImageUrl": `${baseUrl}/opengraph.jpg`,
         "splashBackgroundColor": "#12141d",
-        "webhookUrl": "https://taskpay.group/api/webhook"
+        "webhookUrl": `${baseUrl}/api/webhook`
       }
     });
   });
