@@ -244,11 +244,11 @@ export default function Profile() {
             <div className="grid grid-cols-2 gap-3 mt-4">
               <div className="bg-white/5 backdrop-blur-md rounded-xl p-3 border border-white/5 text-center">
                 <div className="text-[10px] uppercase text-muted-foreground font-tech mb-1 break-words">Neynar Score</div>
-                <div className="text-xl font-display font-bold text-white">{userData.neynarScore.toFixed(1)}</div>
+                <div className="text-xl font-display font-bold text-white">{Math.round(userData.neynarScore * 100)}</div>
               </div>
               <div className="bg-white/5 backdrop-blur-md rounded-xl p-3 border border-white/5 text-center">
                 <div className="text-[10px] uppercase text-muted-foreground font-tech mb-1 break-words">Quotient</div>
-                <div className="text-xl font-display font-bold text-white">{userData.quotientScore.toFixed(1)}</div>
+                <div className="text-xl font-display font-bold text-white">{Math.round(userData.quotientScore * 100)}</div>
               </div>
             </div>
           </div>

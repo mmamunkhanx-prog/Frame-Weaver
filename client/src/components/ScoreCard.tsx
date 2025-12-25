@@ -4,12 +4,11 @@ import { cn } from "@/lib/utils";
 interface ScoreCardProps {
   title: string;
   score: number;
-  maxScore?: number;
   type: "neynar" | "quotient";
   className?: string;
 }
 
-export function ScoreCard({ title, score, maxScore = 100, type, className }: ScoreCardProps) {
+export function ScoreCard({ title, score, type, className }: ScoreCardProps) {
   const isNeynar = type === "neynar";
   const colorClass = isNeynar ? "text-primary" : "text-secondary";
   const borderClass = isNeynar ? "border-primary/30" : "border-secondary/30";
@@ -17,13 +16,8 @@ export function ScoreCard({ title, score, maxScore = 100, type, className }: Sco
     ? "bg-gradient-to-br from-primary/10 to-transparent" 
     : "bg-gradient-to-br from-secondary/10 to-transparent";
 
-  const percentage = isNeynar 
-    ? Math.min((score / maxScore) * 100, 100)
-    : Math.min(score * 100, 100);
-
-  const displayScore = isNeynar 
-    ? score.toFixed(2)
-    : score.toFixed(3);
+  const displayValue = Math.round(score * 100);
+  const percentage = Math.min(displayValue, 100);
 
   return (
     <motion.div 
@@ -42,7 +36,7 @@ export function ScoreCard({ title, score, maxScore = 100, type, className }: Sco
             {title}
           </h3>
           <div className={cn("text-4xl font-display font-bold tabular-nums neon-text", colorClass)}>
-            {displayScore}<span className="text-lg opacity-50">{isNeynar ? "/100" : ""}</span>
+            {displayValue}<span className="text-lg opacity-50">/100</span>
           </div>
         </div>
         

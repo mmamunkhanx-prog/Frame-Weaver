@@ -48,7 +48,7 @@ export default function Home() {
   const handleShare = () => {
     if (!userData) return;
     
-    const text = `My Farcaster Scores are in!%0A%0ANeynar: ${userData.neynarScore.toFixed(1)}%0AQuotient: ${userData.quotientScore.toFixed(1)}%0A%0ACheck yours here!`;
+    const text = `My Farcaster Scores are in!%0A%0ANeynar: ${Math.round(userData.neynarScore * 100)}%0AQuotient: ${Math.round(userData.quotientScore * 100)}%0A%0ACheck yours here!`;
     const url = `https://warpcast.com/~/compose?text=${text}`;
     
     window.open(url, '_blank');
