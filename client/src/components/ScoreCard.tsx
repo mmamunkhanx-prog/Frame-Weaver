@@ -17,7 +17,13 @@ export function ScoreCard({ title, score, maxScore = 100, type, className }: Sco
     ? "bg-gradient-to-br from-primary/10 to-transparent" 
     : "bg-gradient-to-br from-secondary/10 to-transparent";
 
-  const percentage = Math.min((score / maxScore) * 100, 100);
+  const percentage = isNeynar 
+    ? Math.min((score / maxScore) * 100, 100)
+    : Math.min(score * 100, 100);
+
+  const displayScore = isNeynar 
+    ? score.toFixed(2)
+    : score.toFixed(3);
 
   return (
     <motion.div 
@@ -36,11 +42,10 @@ export function ScoreCard({ title, score, maxScore = 100, type, className }: Sco
             {title}
           </h3>
           <div className={cn("text-4xl font-display font-bold tabular-nums neon-text", colorClass)}>
-            {score.toFixed(1)}<span className="text-lg opacity-50">/100</span>
+            {displayScore}<span className="text-lg opacity-50">{isNeynar ? "/100" : ""}</span>
           </div>
         </div>
         
-        {/* Simple visual indicator */}
         <div className="h-12 w-12 rounded-full border-4 border-white/5 flex items-center justify-center relative">
            <svg className="absolute inset-0 rotate-[-90deg]" viewBox="0 0 100 100">
              <circle 
@@ -63,7 +68,6 @@ export function ScoreCard({ title, score, maxScore = 100, type, className }: Sco
         </div>
       </div>
 
-      {/* Background Decorative Elements */}
       <div className={cn(
         "absolute -top-10 -right-10 w-32 h-32 rounded-full blur-3xl opacity-20 pointer-events-none",
         isNeynar ? "bg-primary" : "bg-secondary"

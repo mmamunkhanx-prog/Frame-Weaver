@@ -162,9 +162,9 @@ export async function registerRoutes(
         : 0;
       const engagementNorm = 1 - (engagementRatio * 0.5); // Lower ratio = better
       
-      const quotientScore = Math.round(
-        (neynarNorm * 0.5 + followersNorm * 0.3 + engagementNorm * 0.2) * 100
-      );
+      // Calculate raw quotient score (0-1 scale like original Quotient.social)
+      const quotientScoreRaw = neynarNorm * 0.5 + followersNorm * 0.3 + engagementNorm * 0.2;
+      const quotientScore = Math.round(quotientScoreRaw * 1000) / 1000; // 3 decimal places
       
       res.json({
         fid: userData.fid,
@@ -172,7 +172,7 @@ export async function registerRoutes(
         displayName: userData.display_name,
         pfp: userData.pfp_url,
         neynarScore: neynarScore,
-        quotientScore: Math.min(Math.max(quotientScore, 0), 100),
+        quotientScore: Math.min(Math.max(quotientScore, 0), 1),
         followerCount,
         followingCount,
       });
