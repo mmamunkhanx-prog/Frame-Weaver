@@ -74,3 +74,32 @@ export async function claimDegen(userId: number, walletAddress: string) {
   
   return res.json();
 }
+
+export async function getNftInfo() {
+  const res = await fetch('/api/nfts/info');
+  
+  if (!res.ok) throw new Error('Failed to get NFT info');
+  return res.json();
+}
+
+export async function mintNft(data: {
+  userId: number;
+  walletAddress: string;
+  neynarScore: number;
+  quotientScore: number;
+  username: string;
+  fid: number;
+}) {
+  const res = await fetch('/api/nfts/mint', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.error || 'Failed to mint NFT');
+  }
+  
+  return res.json();
+}

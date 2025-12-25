@@ -43,6 +43,8 @@
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tanstack/react-query": "^5.60.5",
+    "@zoralabs/protocol-deployments": "^0.6.4",
+    "@zoralabs/protocol-sdk": "^0.13.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

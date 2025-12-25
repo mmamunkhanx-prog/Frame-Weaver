@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertNftSchema, insertDegenClaimSchema } from "@shared/schema";
 import { degenService } from "./degen";
+import { nftService } from "./nft";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -183,7 +184,70 @@ export async function registerRoutes(
     }
   });
 
-  // Create NFT record
+  // Get NFT minting info
+  app.get("/api/nfts/info", async (req, res) => {
+    try {
+      const isConfigured = nftService.isConfigured();
+      const adminAddress = nftService.getAdminAddress();
+      const ethBalance = await nftService.getEthBalance();
+      
+      res.json({
+        configured: isConfigured,
+        adminAddress,
+        ethBalance,
+        mintPrice: nftService.getMintPrice(),
+        totalCost: nftService.getTotalMintCost(),
+      });
+    } catch (error) {
+      console.error("Error getting NFT info:", error);
+      res.status(500).json({ error: "Failed to get NFT info" });
+    }
+  });
+
+  // Mint NFT for user score
+  app.post("/api/nfts/mint", async (req, res) => {
+    try {
+      const { userId, walletAddress, neynarScore, quotientScore, username, fid } = req.body;
+      
+      if (!userId || !walletAddress) {
+        return res.status(400).json({ error: "User ID and wallet address required" });
+      }
+      
+      const result = await nftService.mintNft(walletAddress, {
+        name: `Quotient Score NFT - ${username}`,
+        description: `This NFT certifies ${username}'s Neynar Score (${neynarScore.toFixed(2)}) and Quotient Score (${quotientScore.toFixed(3)}) on Farcaster.`,
+        neynarScore,
+        quotientScore,
+        username,
+        fid,
+      });
+      
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || "Minting failed" });
+      }
+      
+      // Save NFT record to database
+      const nft = await storage.createNft({
+        userId,
+        tokenId: result.tokenId || "pending",
+        transactionHash: result.txHash || "",
+        neynarScore: neynarScore.toString(),
+        quotientScore: quotientScore.toString(),
+      });
+      
+      res.json({
+        success: true,
+        nft,
+        txHash: result.txHash,
+        tokenId: result.tokenId,
+      });
+    } catch (error) {
+      console.error("Error minting NFT:", error);
+      res.status(500).json({ error: "Failed to mint NFT" });
+    }
+  });
+
+  // Create NFT record (legacy)
   app.post("/api/nfts", async (req, res) => {
     try {
       const nftData = insertNftSchema.parse(req.body);

@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Wallet, Sparkles, AlertCircle, Gift, Clock } from "lucide-react";
 import generatedImage from '@assets/generated_images/dark_futuristic_neon_grid_background.png';
 import { useState, useEffect } from "react";
-import { getNeynarScores, canClaimDegen, claimDegen, getOrCreateUser } from "@/lib/api";
+import { getNeynarScores, canClaimDegen, claimDegen, getOrCreateUser, mintNft, getNftInfo } from "@/lib/api";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import sdk from "@farcaster/frame-sdk";
 
@@ -81,6 +81,36 @@ export default function Profile() {
     },
   });
 
+  const mintMutation = useMutation({
+    mutationFn: async () => {
+      if (!dbUser || !walletAddress || !userData) {
+        throw new Error("Wallet not connected");
+      }
+      return mintNft({
+        userId: dbUser.id,
+        walletAddress,
+        neynarScore: userData.neynarScore,
+        quotientScore: userData.quotientScore,
+        username: userData.username,
+        fid: userData.fid,
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "NFT Minted!",
+        description: `Your score NFT is now on Base. TX: ${data.txHash?.slice(0, 10)}...`,
+        duration: 5000,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Mint Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   useEffect(() => {
     if (!claimStatus?.canClaim && claimStatus?.remainingMs) {
       const interval = setInterval(() => {
@@ -103,13 +133,62 @@ export default function Profile() {
   }, [claimStatus]);
 
   const handleConnectWallet = async () => {
-    const mockWallet = "0x" + Math.random().toString(16).slice(2, 42);
-    setWalletAddress(mockWallet);
-    
-    toast({
-      title: "Wallet Connected",
-      description: "Ready to mint and claim rewards!",
-    });
+    try {
+      const result = await sdk.actions.signIn({
+        nonce: Date.now().toString(),
+        acceptAuthAddress: true,
+      });
+      
+      if (result?.signature) {
+        const signatureData = result.signature as { address?: string };
+        const custodyAddress = signatureData.address || 
+          (userData?.fid ? `0x${userData.fid.toString(16).padStart(40, '0')}` : null);
+        
+        if (custodyAddress) {
+          setWalletAddress(custodyAddress);
+          toast({
+            title: "Wallet Connected",
+            description: `Connected: ${custodyAddress.slice(0, 6)}...${custodyAddress.slice(-4)}`,
+          });
+          return;
+        }
+      }
+      
+      const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${userData?.fid}`, {
+        headers: {
+          'accept': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const verifications = data.users?.[0]?.verifications;
+        if (verifications && verifications.length > 0) {
+          const ethAddress = verifications.find((v: string) => v.startsWith('0x'));
+          if (ethAddress) {
+            setWalletAddress(ethAddress);
+            toast({
+              title: "Wallet Found",
+              description: `Using verified wallet: ${ethAddress.slice(0, 6)}...${ethAddress.slice(-4)}`,
+            });
+            return;
+          }
+        }
+      }
+      
+      toast({
+        title: "No Wallet Found",
+        description: "Please verify a wallet address on your Farcaster profile.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      console.error("Wallet connection error:", error);
+      toast({
+        title: "Connection Failed",
+        description: "Could not connect wallet. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleMint = () => {
@@ -122,19 +201,7 @@ export default function Profile() {
       return;
     }
 
-    toast({
-      title: "Minting NFT",
-      description: "Preparing transaction on Base network...",
-      duration: 2000,
-    });
-    
-    setTimeout(() => {
-      toast({
-        title: "Mint Successful!",
-        description: "Your Profile NFT is now on-chain.",
-        duration: 3000,
-      });
-    }, 2000);
+    mintMutation.mutate();
   };
 
   if (isLoadingContext || !userData) {
@@ -240,11 +307,11 @@ export default function Profile() {
 
         <Button 
           onClick={handleMint}
-          disabled={!walletAddress}
+          disabled={!walletAddress || mintMutation.isPending}
           className="w-full h-16 text-xl font-display font-bold bg-primary hover:bg-primary/90 text-background border-none shadow-[0_0_25px_hsl(var(--primary)/0.4)] transition-all hover:scale-[1.02] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Wallet className="mr-2 w-6 h-6" />
-          MINT NFT
+          {mintMutation.isPending ? "MINTING..." : "MINT NFT"}
         </Button>
 
         <div className="bg-secondary/10 rounded-xl p-4 border border-secondary/30">
