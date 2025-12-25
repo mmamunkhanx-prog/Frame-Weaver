@@ -5,15 +5,37 @@ import { useToast } from "@/hooks/use-toast";
 import generatedImage from '@assets/generated_images/dark_futuristic_neon_grid_background.png';
 import { getNeynarScores, getUserNfts, getOrCreateUser } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import sdk from "@farcaster/frame-sdk";
 
 export default function Gallery() {
   const { toast } = useToast();
-  const [fid] = useState(3); // In production, this comes from Farcaster Frame context
+  const [fid, setFid] = useState<number | null>(null);
+  const [isLoadingContext, setIsLoadingContext] = useState(true);
+
+  useEffect(() => {
+    async function getContext() {
+      try {
+        const context = await sdk.context;
+        if (context?.user?.fid) {
+          setFid(context.user.fid);
+        } else {
+          setFid(3);
+        }
+      } catch (error) {
+        console.log("Not in Farcaster context, using default FID");
+        setFid(3);
+      } finally {
+        setIsLoadingContext(false);
+      }
+    }
+    getContext();
+  }, []);
 
   const { data: userData } = useQuery({
     queryKey: ['neynar-scores', fid],
-    queryFn: () => getNeynarScores(fid),
+    queryFn: () => getNeynarScores(fid!),
+    enabled: !!fid,
   });
 
   const { data: dbUser } = useQuery({
@@ -44,7 +66,7 @@ export default function Gallery() {
     });
   };
 
-  if (isLoading || !userData) {
+  if (isLoadingContext || isLoading || !userData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-muted-foreground">Loading gallery...</p>
