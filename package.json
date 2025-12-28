@@ -78,6 +78,10 @@
     "wouter": "^3.3.5",
     "ws": "^8.18.0",
     "zod": "^3.25.76",
+    "wagmi": "latest",
+    "viem": "latest",
+    "@farcaster/frame-sdk": "latest",
+    "@farcaster/frame-wagmi-connector": "latest",
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
