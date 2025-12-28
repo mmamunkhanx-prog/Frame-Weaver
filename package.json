@@ -80,6 +80,7 @@
     "viem": "latest",
     "@farcaster/frame-sdk": "latest",
     "@farcaster/frame-wagmi-connector": "latest",
+    "@farcaster/miniapp-wagmi-connector": "latest",
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
