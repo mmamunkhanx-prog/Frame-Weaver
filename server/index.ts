@@ -1,38 +1,13 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
+import { setupVite, serveStatic, createViteServer } from "./vite";
 import { createServer } from "http";
 
 const app = express();
-const httpServer = createServer(app);
-
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
-
+// Logging Middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -51,48 +26,46 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
-      log(logLine);
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+      console.log(logLine);
     }
   });
 
   next();
 });
 
-(async () => {
-  await registerRoutes(httpServer, app);
+// সার্ভার তৈরি এবং রাউট রেজিস্টার করা
+// Vercel-এর জন্য httpServer গ্লোবাল স্কোপে থাকা জরুরি নয়, কিন্তু Replit-এর স্ট্রাকচার ঠিক রাখতে আমরা এভাবে রাখছি
+const httpServer = createServer(app);
+registerRoutes(app); // এখানে httpServer এর বদলে app পাঠানো হলো, কারণ Vercel app-কে হ্যান্ডেল করে
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+// Error Handling Middleware
+app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  res.status(status).json({ message });
+  throw err;
+});
 
-    res.status(status).json({ message });
-    throw err;
-  });
+// Vercel vs Local Development Logic
+// এই অংশটি চেক করে: যদি এটি প্রোডাকশন (Vercel) না হয়, তবেই পোর্ট লিসেন করবে।
+if (process.env.NODE_ENV !== "production") {
+  (async () => {
+    // শুধুমাত্র ডেভেলপমেন্ট মোডে Vite সেটআপ হবে
+    if (app.get("env") === "development") {
+      await setupVite(app, httpServer);
+    } else {
+      serveStatic(app);
+    }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  }
+    const PORT = 5000;
+    httpServer.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })();
+}
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
-})();
+// Vercel-এর জন্য সবচেয়ে গুরুত্বপূর্ণ লাইন
+export default app;
